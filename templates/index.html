@@ -94,7 +94,7 @@
             <article class="home-book-card">
               <a class="home-book-cover" href="{{ url_for('books.detail', book_id=book.id) }}">
                 {% if book.image %}
-                  <img src="{{ url_for('static', filename='images/books/' ~ book.image) }}" alt="{{ book.title }}" loading="lazy" />
+                  <img src="{{ url_for('static', filename='images/' ~ (('books/' ~ book.image) if '/' not in book.image else book.image)) }}" alt="{{ book.title }}" loading="lazy" />
                 {% else %}
                   <span class="home-book-no-image"><i class="bi bi-book" aria-hidden="true"></i><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
                 {% endif %}
@@ -144,7 +144,7 @@
               <article class="home-book-card">
                 <a class="home-book-cover" href="{{ url_for('books.detail', book_id=book.id) }}">
                   {% if book.image %}
-                    <img src="{{ url_for('static', filename='images/books/' ~ book.image) }}" alt="{{ book.title }}" loading="lazy" />
+                    <img src="{{ url_for('static', filename='images/' ~ (('books/' ~ book.image) if '/' not in book.image else book.image)) }}" alt="{{ book.title }}" loading="lazy" />
                   {% else %}
                     <span class="home-book-no-image"><i class="bi bi-book" aria-hidden="true"></i><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
                   {% endif %}

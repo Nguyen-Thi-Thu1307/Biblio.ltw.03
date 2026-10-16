@@ -4,7 +4,7 @@
   <div class="detail-img">
     {% if book.image %}
     <img
-      src="{{ url_for('static', filename='images/books/' ~ book.image) }}"
+      src="{{ url_for('static', filename='images/' ~ (('books/' ~ book.image) if '/' not in book.image else book.image)) }}"
       alt="{{ book.title }}"
     />
     {% else %}
@@ -17,6 +17,19 @@
     <p>
       <strong>{{ t('book.publisher') }}:</strong> {{ book.publisher or t('book.publisher_missing') }}
     </p>
+    {% if book.distributor or book.publication_year or book.page_count or book.edition_type or book.origin or book.language or book.cover_type or book.shipping_from or book.size %}
+    <div class="book-detail-metadata">
+      {% if book.distributor %}<p><strong>Nhà phát hành:</strong> {{ book.distributor }}</p>{% endif %}
+      {% if book.publication_year %}<p><strong>Năm xuất bản:</strong> {{ book.publication_year }}</p>{% endif %}
+      {% if book.page_count %}<p><strong>Số trang:</strong> {{ book.page_count }}</p>{% endif %}
+      {% if book.edition_type %}<p><strong>Loại phiên bản:</strong> {{ book.edition_type }}</p>{% endif %}
+      {% if book.origin %}<p><strong>Nhập khẩu / trong nước:</strong> {{ book.origin }}</p>{% endif %}
+      {% if book.language %}<p><strong>Ngôn ngữ:</strong> {{ book.language }}</p>{% endif %}
+      {% if book.cover_type %}<p><strong>Loại bìa:</strong> {{ book.cover_type }}</p>{% endif %}
+      {% if book.shipping_from %}<p><strong>Gửi từ:</strong> {{ book.shipping_from }}</p>{% endif %}
+      {% if book.size %}<p><strong>Kích thước:</strong> {{ book.size }}</p>{% endif %}
+    </div>
+    {% endif %}
     <p>
       <strong>{{ t('book.category') }}:</strong>
       {% if book.category %}

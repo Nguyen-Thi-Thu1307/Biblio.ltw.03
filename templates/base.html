@@ -17,7 +17,7 @@
     />
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css', v='20261013-active-nav-text') }}"
+      href="{{ url_for('static', filename='css/style.css', v='20261015-cart-quantity-input') }}"
     />
     {% block head %}{% endblock %}
   </head>
@@ -182,7 +182,11 @@
                     {% endif %}
                     <li><hr class="dropdown-divider" /></li>
                     <li>
-                      <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                      <a
+                        class="dropdown-item"
+                        href="{{ url_for('auth.logout') }}"
+                        onclick="return window.confirm('{{ t('header.logout_confirm') }}');"
+                      >
                         {{ t('header.logout') }}
                       </a>
                     </li>
@@ -363,6 +367,8 @@
           <div class="chatbot-suggestions" aria-label="{{ t('chatbot.suggestions_label') }}">
             <button type="button" data-chatbot-prompt="{{ t('chatbot.prompt_skills') }}">{{ t('chatbot.skills') }}</button>
             <button type="button" data-chatbot-prompt="{{ t('chatbot.prompt_history') }}">{{ t('chatbot.history') }}</button>
+            <button type="button" data-chatbot-prompt="{{ t('chatbot.prompt_delivery') }}">{{ t('chatbot.delivery') }}</button>
+            <button type="button" data-chatbot-prompt="{{ t('chatbot.prompt_policy') }}">{{ t('chatbot.policy') }}</button>
           </div>
         </div>
         <form
@@ -416,7 +422,7 @@
       crossorigin="anonymous"
     ></script>
     <script src="{{ url_for('static', filename='js/search.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/chatbot.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/chatbot.js', v='20261015-chatbot-outside-close') }}" defer></script>
     <script>
       (() => {
         const navLinks = document.querySelectorAll(".site-nav-links a[data-nav-anchor]");

@@ -4,7 +4,11 @@ from ..extensions import db
 from ..models import Order
 from ..notifications import create_notification
 from translations import tr
-from .orders import ORDER_STATUSES, localized_order_statuses
+from .orders import (
+    ORDER_STATUSES,
+    localized_order_statuses,
+    localized_payment_methods,
+)
 
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -15,7 +19,10 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 def orders():
     orders = Order.query.order_by(Order.created_at.desc(), Order.id.desc()).all()
     return render_template(
-        "admin/orders.html", orders=orders, order_statuses=localized_order_statuses()
+        "admin/orders.html",
+        orders=orders,
+        order_statuses=localized_order_statuses(),
+        payment_methods=localized_payment_methods(),
     )
 
 

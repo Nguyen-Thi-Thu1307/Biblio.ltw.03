@@ -31,7 +31,7 @@
             {% if item.book.image %}
             <img
               class="cart-book-image"
-              src="{{ url_for('static', filename='images/books/' ~ item.book.image) }}"
+              src="{{ url_for('static', filename='images/' ~ (('books/' ~ item.book.image) if '/' not in item.book.image else item.book.image)) }}"
               alt="{{ item.book.title }}"
             />
             {% else %}
@@ -58,7 +58,21 @@
               aria-label="{{ t('cart.decrease', title=item.book.title) }}"
               {% if item.quantity <= 1 %}disabled{% endif %}
             >−</button>
-            <span class="cart-quantity-value">{{ item.quantity }}</span>
+            <label class="visually-hidden" for="cart-quantity-{{ item.id }}">
+              {{ t('cart.quantity') }}: {{ item.book.title }}
+            </label>
+            <input
+              id="cart-quantity-{{ item.id }}"
+              class="form-control form-control-sm cart-quantity-input"
+              type="number"
+              name="quantity"
+              value="{{ item.quantity }}"
+              min="1"
+              max="{{ item.book.stock or 0 }}"
+              step="1"
+              inputmode="numeric"
+              aria-label="{{ t('cart.quantity') }}: {{ item.book.title }}"
+            />
             <button
               class="btn btn-sm btn-outline-secondary"
               type="submit"

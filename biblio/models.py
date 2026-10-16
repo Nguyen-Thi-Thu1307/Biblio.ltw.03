@@ -1,7 +1,29 @@
 from datetime import datetime
+from pathlib import Path
+
+from flask import current_app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
+
+
+VISIBLE_CATEGORY_NAMES = (
+    "Khoa học - Công nghệ",
+    "Kinh tế - Kỹ năng",
+    "Lịch sử - Triết học - Văn hoá",
+    "Sách tham khảo",
+    "Thiếu nhi",
+    "Văn học",
+)
+
+
+def book_image_exists(book):
+    if not book.image or book.image == "placeholder.png":
+        return False
+    image_root = Path(current_app.static_folder) / "images"
+    return (image_root / book.image).is_file() or (
+        image_root / "books" / book.image
+    ).is_file()
 
 
 class User(UserMixin, db.Model):
@@ -65,6 +87,15 @@ class Book(db.Model):
     description = db.Column(db.Text)
     description_en = db.Column(db.Text)
     image = db.Column(db.String(200))
+    edition_type = db.Column(db.String(100))
+    origin = db.Column(db.String(100))
+    language = db.Column(db.String(50))
+    cover_type = db.Column(db.String(100))
+    distributor = db.Column(db.String(150))
+    publication_year = db.Column(db.String(50))
+    page_count = db.Column(db.String(100))
+    shipping_from = db.Column(db.String(100))
+    size = db.Column(db.String(50))
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
 
 
@@ -96,6 +127,9 @@ class Order(db.Model):
     receiver_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     address = db.Column(db.String(255), nullable=False)
+    payment_method = db.Column(
+        db.String(30), nullable=False, default="cash_on_delivery"
+    )
     total = db.Column(db.Integer, default=0)
     status = db.Column(db.String(20), default="pending")  # pending (chờ xác nhận), shipping (đang giao), delivered (đã giao), cancelled (đã hủy).
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

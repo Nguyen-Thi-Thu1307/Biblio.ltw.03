@@ -3,6 +3,31 @@ from sqlalchemy import inspect
 from .extensions import db
 
 
+def migrate_book_detail_schema():
+    columns = {
+        "edition_type": "VARCHAR(100)",
+        "origin": "VARCHAR(100)",
+        "language": "VARCHAR(50)",
+        "cover_type": "VARCHAR(100)",
+        "distributor": "VARCHAR(150)",
+        "publication_year": "VARCHAR(50)",
+        "page_count": "VARCHAR(100)",
+        "shipping_from": "VARCHAR(100)",
+        "size": "VARCHAR(50)",
+    }
+    connection = db.engine.raw_connection()
+    cursor = connection.cursor()
+    try:
+        existing = {column[1] for column in cursor.execute("PRAGMA table_info(book)")}
+        for name, definition in columns.items():
+            if name not in existing:
+                cursor.execute(f"ALTER TABLE book ADD COLUMN {name} {definition}")
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()
+
+
 def migrate_social_auth_schema():
     if db.engine.dialect.name != "sqlite":
         inspector = inspect(db.engine)
@@ -63,3 +88,32 @@ def migrate_social_auth_schema():
         finally:
             cursor.close()
             connection.close()
+
+
+def migrate_order_payment_schema():
+    if db.engine.dialect.name != "sqlite":
+        inspector = inspect(db.engine)
+        if "order" in inspector.get_table_names():
+            columns = {column["name"] for column in inspector.get_columns("order")}
+            if "payment_method" not in columns:
+                raise RuntimeError(
+                    "Thiếu cột order.payment_method; cần migration thủ công trên hệ quản trị này."
+                )
+        return
+
+    connection = db.engine.raw_connection()
+    cursor = connection.cursor()
+    try:
+        columns = cursor.execute('PRAGMA table_info("order")').fetchall()
+        if columns and not any(column[1] == "payment_method" for column in columns):
+            cursor.execute(
+                """
+                ALTER TABLE "order"
+                ADD COLUMN payment_method VARCHAR(30) NOT NULL
+                DEFAULT 'cash_on_delivery'
+                """
+            )
+            connection.commit()
+    finally:
+        cursor.close()
+        connection.close()

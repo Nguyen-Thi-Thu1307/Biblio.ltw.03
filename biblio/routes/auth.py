@@ -1,4 +1,7 @@
 import re
+import smtplib
+import ssl
+from email.message import EmailMessage
 
 from authlib.integrations.base_client.errors import OAuthError
 from flask import (
@@ -12,6 +15,7 @@ from flask import (
     session,
     url_for,
 )
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from requests import RequestException
 from sqlalchemy.exc import IntegrityError
 
@@ -54,6 +58,41 @@ def _provider_unavailable(provider):
         "error",
     )
     return redirect(_provider_redirect())
+
+
+def _password_reset_serializer():
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+
+
+def _send_password_reset_email(user):
+    token = _password_reset_serializer().dumps(user.id, salt="password-reset")
+    reset_url = url_for("auth.reset_password", token=token, _external=True)
+    message = EmailMessage()
+    message["Subject"] = tr("auth.reset_email_subject")
+    message["From"] = current_app.config["MAIL_FROM"]
+    message["To"] = user.email
+    message.set_content(
+        tr(
+            "auth.reset_email_body",
+            reset_url=reset_url,
+            minutes=current_app.config["PASSWORD_RESET_MAX_AGE"] // 60,
+        )
+    )
+
+    server = current_app.config["MAIL_SERVER"]
+    port = current_app.config["MAIL_PORT"]
+    username = current_app.config["MAIL_USERNAME"]
+    password = current_app.config["MAIL_PASSWORD"]
+    if not server or not message["From"]:
+        raise RuntimeError("Thiếu cấu hình máy chủ email đặt lại mật khẩu.")
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP(server, port, timeout=15) as smtp:
+        if current_app.config["MAIL_USE_TLS"]:
+            smtp.starttls(context=context)
+        if username:
+            smtp.login(username, password or "")
+        smtp.send_message(message)
 
 
 def _normalized_profile(provider, data):
@@ -289,6 +328,61 @@ def login():
         else:
             return _establish_session(user)
     return render_template("auth/login.html")
+
+
+@bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = User.query.filter_by(email=email).first()
+        if user and user.is_active:
+            try:
+                _send_password_reset_email(user)
+            except (OSError, smtplib.SMTPException, RuntimeError):
+                current_app.logger.exception(
+                    "Không thể gửi email đặt lại mật khẩu cho user_id=%s.", user.id
+                )
+                flash(tr("flash.password_reset_unavailable"), "error")
+                return render_template("auth/forgot_password.html", email=email)
+        else:
+            flash(tr("flash.password_reset_sent"), "success")
+            return redirect(url_for("auth.login"))
+        flash(tr("flash.password_reset_sent"), "success")
+        return redirect(url_for("auth.login"))
+    return render_template("auth/forgot_password.html", email="")
+
+
+@bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    try:
+        user_id = _password_reset_serializer().loads(
+            token,
+            salt="password-reset",
+            max_age=current_app.config["PASSWORD_RESET_MAX_AGE"],
+        )
+    except (BadSignature, SignatureExpired):
+        flash(tr("flash.password_reset_invalid"), "error")
+        return redirect(url_for("auth.forgot_password"))
+
+    user = db.session.get(User, user_id)
+    if not user or not user.is_active:
+        flash(tr("flash.password_reset_invalid"), "error")
+        return redirect(url_for("auth.forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
+        if len(password) < 6:
+            flash(tr("flash.password_short"), "error")
+        elif password != confirm:
+            flash(tr("flash.password_mismatch"), "error")
+        else:
+            user.set_password(password)
+            db.session.commit()
+            flash(tr("flash.password_reset_success"), "success")
+            return redirect(url_for("auth.login"))
+
+    return render_template("auth/reset_password.html")
 
 
 @bp.route("/auth/<provider>")

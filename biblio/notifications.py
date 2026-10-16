@@ -1,16 +1,24 @@
 import re
+from datetime import timedelta, timezone
 
 from .extensions import db
 from .models import Notification
 from translations import get_language, tr
 
+VIETNAM_TIMEZONE = timezone(timedelta(hours=7))
+
 
 def localize_notification(notification):
     title = notification.title
     message = notification.message
+    created_at = notification.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    created_at = created_at.astimezone(VIETNAM_TIMEZONE)
+
     if get_language() != "en":
         return {"id": notification.id, "title": title, "message": message,
-                "is_read": notification.is_read, "created_at": notification.created_at}
+                "is_read": notification.is_read, "created_at": created_at}
 
     title_keys = {
         "Chào mừng đến với Biblio": "auth.welcome_notification_title",
@@ -72,7 +80,7 @@ def localize_notification(notification):
         "title": localized_title,
         "message": localized_message,
         "is_read": notification.is_read,
-        "created_at": notification.created_at,
+        "created_at": created_at,
     }
 
 

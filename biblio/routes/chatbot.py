@@ -1,9 +1,10 @@
 import re
+import unicodedata
 
 from flask import Blueprint, jsonify, request, url_for
 from sqlalchemy import or_
 
-from ..models import Book, Category
+from ..models import Book, Category, book_image_exists
 from translations import get_language, tr
 
 bp = Blueprint("chatbot", __name__, url_prefix="/chatbot")
@@ -25,6 +26,42 @@ _SEARCH_FIELDS = (
 )
 
 
+def _plain_text(value):
+    normalized = "".join(
+        char
+        for char in unicodedata.normalize("NFD", value.lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    return normalized.replace("đ", "d")
+
+
+def _has_any(text, phrases):
+    return any(phrase in text for phrase in phrases)
+
+
+def _book_cards(books):
+    return [
+        {
+            "title": book.title,
+            "author": book.author,
+            "category": (
+                (book.category.name_en if get_language() == "en" and book.category.name_en else book.category.name)
+                if book.category
+                else ""
+            ),
+            "publisher": book.publisher or "",
+            "description": (
+                book.description_en if get_language() == "en" and book.description_en else book.description
+            )
+            or "",
+            "stock": book.stock or 0,
+            "price": f"{book.price:,}".replace(",", ".") + " ₫",
+            "url": url_for("books.detail", book_id=book.id),
+        }
+        for book in books
+    ]
+
+
 @bp.post("/message")
 def message():
     payload = request.get_json(silent=True) or {}
@@ -38,6 +75,37 @@ def message():
     text = text.strip()
     if not text or len(text) > 240:
         return jsonify(error=tr("chatbot.invalid_length")), 400
+
+    plain_text = _plain_text(text)
+    if _has_any(plain_text, ("giao hang", "ship", "van chuyen", "bao lau")):
+        return jsonify(reply=tr("chatbot.delivery_info"), books=[])
+    if _has_any(plain_text, ("thanh toan", "cod", "chuyen khoan", "qr", "vi dien tu")):
+        return jsonify(reply=tr("chatbot.payment_info"), books=[])
+    if _has_any(
+        plain_text,
+        (
+            "dieu khoan",
+            "chinh sach bao mat",
+            "bao mat",
+            "cookie",
+            "luu tru",
+            "quyen cua ban",
+            "tre em",
+            "thay doi chinh sach",
+        ),
+    ):
+        return jsonify(reply=tr("chatbot.legal_info"), books=[])
+    if _has_any(plain_text, ("lien he", "hotline", "email", "dia chi")):
+        return jsonify(reply=tr("chatbot.contact_info"), books=[])
+    if _has_any(
+        plain_text,
+        ("gio hang", "dat hang", "don hang", "mua sach", "dich vu", "ho tro mua"),
+    ):
+        return jsonify(reply=tr("chatbot.order_info"), books=[])
+    if _has_any(plain_text, ("tai khoan", "dang ky", "dang nhap", "quen mat khau")):
+        return jsonify(reply=tr("chatbot.account_info"), books=[])
+    if _has_any(plain_text, ("biblio la gi", "du an", "gioi thieu")):
+        return jsonify(reply=tr("chatbot.project_info"), books=[])
 
     terms = list(
         dict.fromkeys(
@@ -55,7 +123,6 @@ def message():
 
     matches = (
         Book.query.outerjoin(Category, Book.category_id == Category.id)
-        .filter(Book.stock > 0)
         .filter(
             or_(
                 *(field.ilike(f"%{term}%") for term in terms for field in _SEARCH_FIELDS)
@@ -64,6 +131,7 @@ def message():
         .limit(50)
         .all()
     )
+    matches = [book for book in matches if book_image_exists(book)]
 
     def relevance(book):
         fields = (
@@ -81,23 +149,13 @@ def message():
         )
 
     matches.sort(key=lambda book: (relevance(book), book.stock), reverse=True)
-    recommendations = [
-        {
-            "title": book.title,
-            "author": book.author,
-            "category": (
-                (book.category.name_en if get_language() == "en" and book.category.name_en else book.category.name)
-                if book.category
-                else ""
-            ),
-            "price": f"{book.price:,}".replace(",", ".") + " ₫",
-            "url": url_for("books.detail", book_id=book.id),
-        }
-        for book in matches[:3]
-    ]
+    recommendations = _book_cards(matches[:3])
 
     if recommendations:
-        reply = tr("chatbot.recommendations_found")
+        if any((book["stock"] or 0) < 1 for book in recommendations):
+            reply = tr("chatbot.book_info_found")
+        else:
+            reply = tr("chatbot.recommendations_found")
     else:
         reply = tr("chatbot.no_recommendations")
 

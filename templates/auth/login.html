@@ -2,11 +2,32 @@
 block content %}
 <form class="auth-form" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-  <h2>{{ t('auth.login_title') }}</h2>
+  <nav class="auth-switch" aria-label="{{ t('auth.authentication_navigation') }}">
+    <a class="is-active" href="{{ url_for('auth.login') }}">{{ t('auth.login_button') }}</a>
+    <a href="{{ url_for('auth.register') }}">{{ t('auth.register_button') }}</a>
+  </nav>
   <label>{{ t('auth.username') }} <input type="text" name="username" autocomplete="username" required /></label>
-  <label>{{ t('auth.password') }} <input type="password" name="password" autocomplete="current-password" required /></label>
+  <label>
+    {{ t('auth.password') }}
+    <span class="password-field">
+      <input id="login-password" type="password" name="password" autocomplete="current-password" required />
+      <button
+        class="password-toggle"
+        type="button"
+        data-password-toggle="login-password"
+        data-show-label="{{ t('auth.show_password') }}"
+        data-hide-label="{{ t('auth.hide_password') }}"
+        aria-label="{{ t('auth.show_password') }}"
+      >
+        <i class="bi bi-eye" aria-hidden="true"></i>
+      </button>
+    </span>
+  </label>
   <button class="btn" type="submit">{{ t('auth.login_button') }}</button>
   {% include "auth/_social_buttons.html" %}
-  <p>{{ t('auth.no_account') }} <a href="{{ url_for('auth.register') }}">{{ t('auth.register_button') }}</a></p>
+  <p><a href="{{ url_for('auth.forgot_password') }}">{{ t('auth.forgot_password') }}</a></p>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/password-toggle.js') }}" defer></script>
 {% endblock %}

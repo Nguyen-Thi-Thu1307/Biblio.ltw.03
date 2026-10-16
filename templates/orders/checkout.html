@@ -18,6 +18,21 @@
         {{ t('checkout.address') }}
         <textarea name="address" maxlength="255" rows="3" required>{{ form_data.address }}</textarea>
       </label>
+      <fieldset class="mb-3">
+        <legend class="form-label">{{ t('checkout.payment_method') }}</legend>
+        {% for value, label in payment_methods.items() %}
+        <label class="d-block mb-2">
+          <input
+            type="radio"
+            name="payment_method"
+            value="{{ value }}"
+            required
+            {% if form_data.payment_method == value %}checked{% endif %}
+          />
+          {{ label }}
+        </label>
+        {% endfor %}
+      </fieldset>
       <button class="btn" type="submit">{{ t('checkout.submit') }}</button>
     </form>
   </section>

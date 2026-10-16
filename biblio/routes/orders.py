@@ -13,6 +13,10 @@ ORDER_STATUSES = {
     "delivered": "orders.status.delivered",
     "cancelled": "orders.status.cancelled",
 }
+PAYMENT_METHODS = {
+    "cash_on_delivery": "checkout.payment_cash_on_delivery",
+    "bank_transfer": "checkout.payment_bank_transfer",
+}
 
 
 def localized_order_statuses():
@@ -35,16 +39,25 @@ def checkout():
         ).strip(),
         "phone": request.form.get("phone", "").strip(),
         "address": request.form.get("address", "").strip(),
+        "payment_method": request.form.get(
+            "payment_method", "cash_on_delivery"
+        ).strip(),
     }
 
     if request.method == "POST":
-        if not all(form_data.values()):
+        if (
+            not all(
+                form_data[field] for field in ("receiver_name", "phone", "address")
+            )
+            or form_data["payment_method"] not in PAYMENT_METHODS
+        ):
             flash(tr("flash.checkout_required"), "error")
             return render_template(
                 "orders/checkout.html",
                 items=items,
                 total=sum(item.book.price * item.quantity for item in items),
                 form_data=form_data,
+                payment_methods=localized_payment_methods(),
             )
 
         for item in items:
@@ -65,6 +78,7 @@ def checkout():
             receiver_name=form_data["receiver_name"],
             phone=form_data["phone"],
             address=form_data["address"],
+            payment_method=form_data["payment_method"],
             total=total,
             status="pending",
         )
@@ -98,7 +112,12 @@ def checkout():
         items=items,
         total=sum(item.book.price * item.quantity for item in items),
         form_data=form_data,
+        payment_methods=localized_payment_methods(),
     )
+
+
+def localized_payment_methods():
+    return {method: tr(translation_key) for method, translation_key in PAYMENT_METHODS.items()}
 
 
 @bp.route("/my-orders")
@@ -121,5 +140,8 @@ def detail(order_id):
     user = get_current_user()
     order = Order.query.filter_by(id=order_id, user_id=user.id).first_or_404()
     return render_template(
-        "orders/detail.html", order=order, order_statuses=localized_order_statuses()
+        "orders/detail.html",
+        order=order,
+        order_statuses=localized_order_statuses(),
+        payment_methods=localized_payment_methods(),
     )

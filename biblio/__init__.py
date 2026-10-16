@@ -35,7 +35,11 @@ def create_app(config_override=None):
     CSRFProtect(app)
 
     from . import models
-    from .migrations import migrate_social_auth_schema
+    from .migrations import (
+        migrate_book_detail_schema,
+        migrate_order_payment_schema,
+        migrate_social_auth_schema,
+    )
     from .routes.main import bp as main_bp
     from .routes.auth import bp as auth_bp
     from .routes.books import bp as books_bp
@@ -88,7 +92,13 @@ def create_app(config_override=None):
             notification_count = models.Notification.query.filter_by(
                 user_id=user.id, is_read=False
             ).count()
-        nav_categories = models.Category.query.order_by(models.Category.name).all()
+        nav_categories = (
+            models.Category.query.filter(
+                models.Category.name.in_(models.VISIBLE_CATEGORY_NAMES)
+            )
+            .order_by(models.Category.name)
+            .all()
+        )
 
         return dict(
             current_user=user,
@@ -112,7 +122,9 @@ def create_app(config_override=None):
         return render_template("errors/404.html"), 404
 
     with app.app_context():
+        migrate_book_detail_schema()
         migrate_social_auth_schema()
         db.create_all()
+        migrate_order_payment_schema()
 
     return app

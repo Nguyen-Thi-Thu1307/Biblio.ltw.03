@@ -46,6 +46,23 @@
         .join(" · ");
       link.appendChild(details);
 
+      if (book.publisher || book.stock !== undefined) {
+        const availability = document.createElement("span");
+        availability.textContent = [
+          book.publisher ? `NXB: ${book.publisher}` : "",
+          book.stock > 0 ? `Còn ${book.stock} cuốn` : "Tạm hết hàng",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        link.appendChild(availability);
+      }
+
+      if (book.description) {
+        const description = document.createElement("small");
+        description.textContent = book.description;
+        link.appendChild(description);
+      }
+
       const price = document.createElement("small");
       price.textContent = book.price;
       link.appendChild(price);
@@ -73,6 +90,10 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !panel.hidden) closePanel();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!panel.hidden && !widget.contains(event.target)) closePanel();
   });
 
   for (const promptButton of widget.querySelectorAll("[data-chatbot-prompt]")) {

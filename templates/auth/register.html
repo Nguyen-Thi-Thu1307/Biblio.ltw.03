@@ -2,16 +2,55 @@
 block content %}
 <form class="auth-form" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-  <h2>{{ t('auth.register_title') }}</h2>
+  <nav class="auth-switch auth-switch-register" aria-label="{{ t('auth.authentication_navigation') }}">
+    <a href="{{ url_for('auth.login') }}">{{ t('auth.login_button') }}</a>
+    <a class="is-active" href="{{ url_for('auth.register') }}">{{ t('auth.register_button') }}</a>
+  </nav>
   <label>{{ t('auth.full_name') }} <input type="text" name="full_name" autocomplete="name" /></label>
   <label>{{ t('auth.username') }} <input type="text" name="username" autocomplete="username" required /></label>
   <label>{{ t('auth.email') }} <input type="email" name="email" autocomplete="email" required /></label>
-  <label>{{ t('auth.password') }} <input type="password" name="password" autocomplete="new-password" required /></label>
-  <label
-    >{{ t('auth.confirm_password') }} <input type="password" name="confirm" autocomplete="new-password" required
-  /></label>
+  <label>
+    {{ t('auth.password') }}
+    <span class="password-field">
+      <input id="register-password" type="password" name="password" autocomplete="new-password" required />
+      <button
+        class="password-toggle"
+        type="button"
+        data-password-toggle="register-password"
+        data-show-label="{{ t('auth.show_password') }}"
+        data-hide-label="{{ t('auth.hide_password') }}"
+        aria-label="{{ t('auth.show_password') }}"
+      >
+        <i class="bi bi-eye" aria-hidden="true"></i>
+      </button>
+    </span>
+  </label>
+  <label>
+    {{ t('auth.confirm_password') }}
+    <span class="password-field">
+      <input id="register-confirm-password" type="password" name="confirm" autocomplete="new-password" required />
+      <button
+        class="password-toggle"
+        type="button"
+        data-password-toggle="register-confirm-password"
+        data-show-label="{{ t('auth.show_password') }}"
+        data-hide-label="{{ t('auth.hide_password') }}"
+        aria-label="{{ t('auth.show_password') }}"
+      >
+        <i class="bi bi-eye" aria-hidden="true"></i>
+      </button>
+    </span>
+  </label>
   <button class="btn" type="submit">{{ t('auth.register_button') }}</button>
+  <p class="small text-muted text-center">
+    Bằng việc đăng ký, bạn đã đồng ý với Biblio về<br />
+    <a href="{{ url_for('main.terms') }}">{{ t('legal.terms.link') }}</a>
+    &amp;
+    <a href="{{ url_for('main.privacy_policy') }}">{{ t('legal.privacy.link') }}</a>
+  </p>
   {% include "auth/_social_buttons.html" %}
-  <p>{{ t('auth.has_account') }} <a href="{{ url_for('auth.login') }}">{{ t('auth.login_button') }}</a></p>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/password-toggle.js') }}" defer></script>
 {% endblock %}
